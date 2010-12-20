@@ -10,3 +10,6 @@ Revision history for Perl extension Test::MockCommand.
 	- check if file is a directory in merge() / load()
 	- add open_handler() class method
 	- add author tests for pod quality
+
+0.03
+	- included t/open-handler.t in manifest

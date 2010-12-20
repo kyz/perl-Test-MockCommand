@@ -17,6 +17,7 @@ t/import-playback1.t
 t/import-playback2.t
 t/import-record.t
 t/load-save.t
+t/open-handler.t
 t/open-normal.t
 t/playback.t
 t/playback-lines.t
@@ -29,4 +30,3 @@ t/recording-v595.t
 t/recording.t
 t/scalar-readline.t
 t/status-funcs.t
-META.yml                                 Module meta-data (added by MakeMaker)
