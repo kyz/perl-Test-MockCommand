@@ -1,7 +1,7 @@
 # -*- perl -*-
 # test the simple status functions, recording() and auto_save()
 
-use Test::More qw(no_plan);
+use Test::More tests => 7;
 use warnings;
 use strict;
 

@@ -104,7 +104,7 @@ sub handle {
 }
 
 sub create_tied_fh {
-    my $self = shift @_;
+    my $self = shift;
     my $fh = gensym();
     tie *$fh, 'Test::MockCommand::TiedFH', 0, undef, $self;
     return $fh;
@@ -166,7 +166,7 @@ class that creates it.
 This is called by L<Test::MockCommand::Recorder> as part of its
 C<handle> method. It passes on all the same arguments it was given by
 the main L<Test::MockCommand> framework. See
-L<Test::MockCommand::Recorder#handle> for detauls of each argument.
+L<Test::MockCommand::Recorder/handle> for details of each argument.
 
 =back
 
@@ -190,16 +190,16 @@ highest first, and in the case of picking a result to emulate a
 command, the first in the list will be chosen.
 
 The criteria are the same as listed in
-L<Test::MockCommand::Recorder#handle>, however you can presume that
+L<Test::MockCommand::Recorder/handle>, however you can presume that
 the criteria C<function> and C<command>, if they are present, have
-been used to filtered out results which don't match.
+been used to filter out results which don't match.
 
 =item $return_value = $result->handle(%args)
 
 This should emulate the function detailed in the arguments and return
 the value that the function itself is expected to return. The
 arguments are the same as listed in
-L<Test::MockCommand::Recorder#handle>, and as with that method, any
+L<Test::MockCommand::Recorder/handle>, and as with that method, any
 results for C<readpipe> should be returned as a scalar, not a list, as
 the framework will break them into a list if needed.
 
@@ -212,6 +212,10 @@ filehandle's C<WRITE> method while emulating an C<open> call.
 
 Appends more text to the C<output_data> attribute. Called by the tied
 filehandle's C<WRITE> method while emulating an C<open> call.
+
+=item $result->create_tied_fh()
+
+Creates a L<Test::MockCommand::TiedFH> filehandle attached to this object.
 
 =back
 

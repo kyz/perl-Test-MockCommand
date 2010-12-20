@@ -1,7 +1,7 @@
  # -*- perl -*-
 # test that clear(), load(), merge(), save() and all_commands() work
 
-use Test::More tests => 9;
+use Test::More tests => 15;
 use warnings;
 use strict;
 
@@ -9,6 +9,28 @@ BEGIN { use_ok 'Test::MockCommand'; }
 
 my @cmds = Test::MockCommand->all_commands();
 ok @cmds == 0, 'no commands by default';
+
+mkdir 'testdir';
+
+eval { Test::MockCommand->load() };
+ok $@, 'check that loading nothing fails';
+
+eval { Test::MockCommand->load('testdir') };
+ok $@, 'check that loading a directory fails';
+
+eval { Test::MockCommand->load('__nonexistent_file__') };
+ok $@, 'check that loading a missing file fails';
+
+eval { Test::MockCommand->merge() };
+ok $@, 'check that merging nothing fails';
+
+eval { Test::MockCommand->merge('testdir') };
+ok $@, 'check that merging a directory fails';
+
+eval { Test::MockCommand->merge('__nonexistent_file__') };
+ok $@, 'check that merging a missing file fails';
+
+rmdir 'testdir';
 
 # turn on recording
 Test::MockCommand->recording(1);

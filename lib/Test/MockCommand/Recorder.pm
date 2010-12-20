@@ -203,13 +203,13 @@ a hashlist of arguments, these are:
 =item command
 
 A string with roughly the command being run. Don't use this as the
-exact command to run, rather use the C<function> and C<arguments>
-parameters to make an exact emulation.
+command to run, rather use the C<function> and C<arguments> parameters
+to make an precise emulation.
 
 =item function
 
-A string function you need to emulate. This will be C<exec>, C<open>,
-C<readpipe> or C<system>.
+A string with the function you need to emulate. This will be C<exec>,
+C<open>, C<readpipe> or C<system>.
 
 =item arguments
 
@@ -234,11 +234,11 @@ First it calls C<matches(%args)> to see if it should record this
 command, or just return C<undef> immediately.
 
 Next, it calls C<pre_capture(%args)> and expects to get back a result
-object. It puts this object in C<%args{result}>.
+object. It puts this object in C<$args{result}>.
 
 It then calls record_open(), record_system(), record_readpipe() or
 record_exec(), based on the function being emulated. It puts the
-result of this call into C<%args{return_value}>.
+result of this call into C<$args{return_value}>.
 
 Finally, it calls C<post_capture(%args)>.
 
@@ -270,6 +270,8 @@ The returned value will be added to the C<%args> hash with the key
 C<return_value>.
 
 =item $new_fh = $recorder->create_tied_fh($real_fh, $result_object)
+
+Creates a L<Test::MockCommand::TiedFH> filehandle attached to this object.
 
 =item $return_value = $recorder->record_system(%args)
 

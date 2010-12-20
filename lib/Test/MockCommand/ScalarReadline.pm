@@ -3,12 +3,14 @@ use strict;
 use warnings;
 use Carp qw(croak);
 
-use Exporter qw(import);
-our @EXPORT_OK = qw(scalar_readline);
+require Exporter;
+use vars qw(@ISA @EXPORT_OK);
+@ISA = qw(Exporter);
+@EXPORT_OK = qw(scalar_readline);
 
 sub scalar_readline {
     croak "scalar context but no second parameter" unless wantarray() || @_ > 1;
-    
+
     # return empty array or undef if there's no data
     if ((!defined $_[0]) || $_[0] eq '') {
 	return () if wantarray();
@@ -134,6 +136,6 @@ and C<undef> thereafter. This function does not do that.
 
 =head1 SEE ALSO
 
-L<perlvar>, L<perlfunc#readline>
+L<perlvar>, L<perlfunc/readline>
 
 =cut

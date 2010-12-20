@@ -11,8 +11,9 @@ use Test::MockCommand::Recorder;
 use Test::MockCommand::Result;
 use Test::MockCommand::ScalarReadline qw(scalar_readline);
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 our $CLASS = __PACKAGE__;
+our $OPEN_HANDLER = undef; # this gets set to _default_open_handler
 our $RECORDING = 0;        # are we recording commands or playing them back?
 our $RECORDING_TO = undef; # where to save results when the program ends
 our %COMMANDS;             # results db: $COMMANDS{$cmd} = [ $result, ... ]
@@ -21,12 +22,16 @@ our @RECORDERS = ( Test::MockCommand::Recorder->new() );
 #carp "WARNING: need perl v5.9.5 or better to mock qx// and backticks"
 #    if $] < 5.009005;
 
+$CLASS->open_handler(undef); # set up _default_open_handler
 $CLASS->_hook_core_functions();
 
 sub import {
     if (@_ >= 3 && $_[1] eq 'record') {
 	$CLASS->auto_save($_[2]);
 	$CLASS->recording(1);
+    }
+    elsif (@_ >= 3 && $_[1] eq 'playback') {
+        $CLASS->load($_[2]);
     }
 }
 
@@ -59,7 +64,7 @@ sub _hook_core_functions {
 
     *CORE::GLOBAL::open = sub (*;$@) {
 	croak "Not enough arguments for open()" unless @_ > 0;
-	# handle open()s that invoke a command, pass through the rest
+	# handle open()s that invoke a command
 	if (@_ < 3) {
 	    # 1/2-arg open()
 	    my $file = $_[-1];
@@ -68,7 +73,6 @@ sub _hook_core_functions {
 	        if $file =~ /^\s*\|\s*(.+?)\s*$/;
 	    return $class->_handle('open', $1, \@_, [caller()])
 	        if $file =~ /^\s*(.+?)\s*\|\s*$/;
-	    return $class->_passthru('open', \@_, caller());
 	}
 	else {
 	    # 3-arg open()
@@ -78,8 +82,10 @@ sub _hook_core_functions {
 	    return $class->_handle('open', join(' ', splice(@_, 2)), \@_,
 				  [caller()])
 	        if $_[1] =~ /^\s*\|-/;
-	    return $class->_passthru('open', \@_, caller());
 	}
+
+	# pass through the rest
+	return $OPEN_HANDLER->(\@_, caller());
     };
 }
 
@@ -122,7 +128,10 @@ sub _handle {
     # warn and pass through if no matching commands
     if (! defined $result) {
 	carp "can't mock $func() command \"$cmd\", passing through";
-	return $class->_passthru($func, $args, $caller->[0]);
+	return $OPEN_HANDLER->($args, $caller->[0]) if $func eq 'open';
+	return CORE::readpipe(@{$args})             if $func eq 'readpipe';
+	return CORE::system(@{$args})               if $func eq 'system';
+	return CORE::exec(@{$args})                 if $func eq 'exec';
     }
 
     # if exec() was called, save the db and exit
@@ -140,38 +149,25 @@ sub _handle {
     return $return;
 }
 
-sub _passthru {
-    my ($class, $func, $args, $calling_pkg) = @_;
+# this is the default $OPEN_HANDLER, use for any non-command-executing
+# open(), also for command-executing open()s when there's no matching
+# recorder or result
+sub _default_open_handler {
+    my ($args, $pkg) = @_;
 
-    if ($func eq 'open') {
-	no strict 'refs';
+    # we might need to use a bareword symbol reference in the open() call
+    no strict 'refs';
 
-	# get filehandle
-	# if defined, file handle is a bareword symbol reference
-	my $fh = $args->[0];
-	$fh = Symbol::qualify($fh, $calling_pkg) if defined $fh;
+    # if defined, open()'s file handle is a bareword symbol reference which
+    # should be qualified as being in the calling package's namespace.
+    my $ref = defined($args->[0]) ? Symbol::qualify($args->[0], $pkg) : undef;
 
-	# open() is finicky about its arguments, can't just use @{$args}
-	if (@{$args} == 1) {
-	    return CORE::open(defined $fh ? $fh : $args->[0])
-	}
-	elsif (@{$args} == 2) {
-	    return CORE::open(defined $fh ? $fh : $args->[0], $args->[1])
-	}
-	else {
-	    return CORE::open(defined $fh ? $fh : $args->[0], $args->[1],
-			      splice(@{$args}, 2));
-	}
-    }
-    elsif ($func eq 'readpipe') {
-	return CORE::readpipe(@{$args});
-    }
-    elsif ($func eq 'system') {
-	return CORE::system(@{$args});
-    }
-    elsif ($func eq 'exec') {
-	return CORE::exec(@{$args});
-    }
+    # open() is finicky about its arguments, it doesn't like just @{$args}.
+    # If the file handle is undefined, we refer directly to it so that open()
+    # can use the pass-by-reference to assign a new value into it.
+    return CORE::open($ref || $args->[0]) if @{$args} == 1;
+    return CORE::open($ref || $args->[0], $args->[1]) if @{$args} == 2;
+    return CORE::open($ref || $args->[0], $args->[1], splice(@{$args}, 2));
 }
 
 sub clear {
@@ -191,6 +187,7 @@ sub merge {
     my $class = shift;
     my $file = shift;
     croak "no file specified" unless defined $file;
+    croak "$file is a directory" if -d $file;
 
     # read and evaluate file, which should set up $VAR1
     my $VAR1 = undef;
@@ -249,7 +246,7 @@ sub find {
 	if (ref $args{command} eq 'Regexp') {
 	    my $re = exists $args{function}
 	        ? qr/^\Q$args{function}\E:(.+)/
-	        : qr/(?:exec|open|readpipe|system):(.+)/;
+	        : qr/^(?:exec|open|readpipe|system):(.+)/;
 	    @keys = grep { $_ =~ $re && $1 =~ $args{command} } keys %COMMANDS;
 	}
 	else {
@@ -291,6 +288,18 @@ sub auto_save {
     my $class = shift;
     $RECORDING_TO = shift if @_ >= 1;
     return $RECORDING_TO;
+}
+
+sub open_handler {
+    my $class = shift;
+    croak 'wrong number of parameters' unless @_ == 1;
+    if (defined $_[0]) {
+	croak 'parameter must be coderef' unless ref $_[0] eq 'CODE';
+	$OPEN_HANDLER = $_[0];
+    }
+    else {
+	$OPEN_HANDLER = \&_default_open_handler;
+    }
 }
 
 1;
@@ -386,6 +395,11 @@ readpipe(), system(), exec() or open() to a pipe as you normally
 would. If the command being executed appears in the database, it will
 be simulated rather than actually run.
 
+You can load a database at the same time you load the module with the
+C<playback> module parameter:
+
+ use Test::MockCommand playback => 'input_filename';
+
 If no appropriate command is found in the database, a warning is
 issued and the function acts as normal, running real external
 commands.
@@ -410,7 +424,7 @@ object via the matches() method, and a list is collected of objects
 that say "yes" by returning non-zero values. If more than one object
 says "yes". the list is sorted by the numeric value of each "yes", and
 the first object in the sorted list is used as a result.  See
-L<Test::MockCommand::Result#matches> for more information.
+L<Test::MockCommand::Result/matches> for more information.
 
 =head1 CLASS METHODS
 
@@ -428,7 +442,9 @@ database.
 =item Test::MockCommand->load($filename)
 
 Loads the command results saved in C<$filename>, overwriting any
-existing results.
+existing results. You can also do this using 'playback' on the import line:
+
+ use Test::MockCommand playback => 'filename.dat';
 
 =item Test::MockCommand->save()
 
@@ -443,7 +459,7 @@ filename is given and there's no auto-save filename set.
 
 Registers a recorder object. It will be asked to record commands by
 having its C<handle> method called. See
-L<Test::MockCommand::Recorder#handle> for more details.
+L<Test::MockCommand::Recorder/handle> for more details.
 
 =item Test::MockCommand->remove_recorder($recorder)
 
@@ -459,7 +475,7 @@ Finds command(s) matching the criteria given as parameters. These can
 be anything the objects implementing the command results know
 about. The function looks at all relevant command results and calls
 their matches() method, to see if they think they match your
-critera. See L<Test::MockCommand::Result#matches> for more
+critera. See L<Test::MockCommand::Result/matches> for more
 information.  In order to search quickly, the find() function also
 directly uses the criteria C<function> and C<command> (if you supply
 them) to cut down the potential list of commands to scan.
@@ -498,6 +514,34 @@ save() is called without a parameter.
 Cancels auto save, nothing will be saved will happen when the program
 ends.
 
+=item Test::MockCommand->open_handler($coderef)
+
+As Test::MockCommand globally overrides the L<open> function, this
+method allows you to set up your own function to handle all the open()
+calls that I<don't> execute a command. The coderef should take two
+arguments; the first is an arrayref of arguments to open(), the second
+is the package name of the calling function. The second parameter
+should be used in order to qualify the first parameter to open(), if
+it's a bareword file reference.
+
+As an example, here is a handler that does nothing, simply passing
+open() calls through to the real open().
+
+ my $passthough_handler = sub {
+     my ($args, $pkg) = @_;
+     no strict 'refs';
+     my $ref = defined($args->[0]) ? Symbol::qualify($args->[0], $pkg) : undef;
+     return CORE::open($ref || $args->[0]) if @{$args} == 1;
+     return CORE::open($ref || $args->[0], $args->[1]) if @{$args} == 2;
+     return CORE::open($ref || $args->[0], $args->[1], splice(@{$args}, 2));
+ };
+ Test::MockCommand->open_handler($passthrough_handler);
+
+=item Test::MockCommand->open_handler(undef)
+
+This removes any open() handler. All open() calls will go straight to
+the real open().
+
 =back
 
 =head1 REQUIREMENTS
@@ -528,7 +572,7 @@ Stuart Caie, E<lt>kyzer@4u.netE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2008 by Stuart Caie
+Copyright (C) 2008-2009 by Stuart Caie
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
