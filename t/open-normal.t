@@ -1,9 +1,18 @@
 # -*- perl -*-
 # test that regular (non-pipe) use of the open() function is unaffected
 
-use Test::More tests => 53;
+use Test::More;
 use warnings;
 use strict;
+
+BEGIN {
+    if ($] >= 5.008) {
+	plan tests => 53;
+    }
+    else {
+	plan tests => 47;
+    }
+}
 
 BEGIN { use_ok 'Test::MockCommand'; }
 
@@ -66,14 +75,15 @@ ok open(FH, '<', 'testfile.txt'),  '3-arg open() reading';
 is <FH>, $string,                  '3-arg open() reading <FH>';
 ok close(FH),                      '3-arg open() reading close';
 
-ok open(FH, ' <', 'testfile.txt'), '3-arg open() reading space';
-is <FH>, $string,                  '3-arg open() reading space <FH>';
-ok close(FH),                      '3-arg open() reading space close';
+if ($] >= 5.008) {
+    ok open(FH, ' <', 'testfile.txt'), '3-arg open() reading space';
+    is <FH>, $string,                  '3-arg open() reading space <FH>';
+    ok close(FH),                      '3-arg open() reading space close';
 
-ok open(FH, '<:utf8', 'testfile.txt'),
-    '3-arg open() reading iolayer';
-is <FH>, $string,                  '3-arg open() reading iolayer <FH>';
-ok close(FH),                      '3-arg open() reading iolayer close';
+    ok open(FH, '<:utf8', 'testfile.txt'), '3-arg open() reading iolayer';
+    is <FH>, $string,                  '3-arg open() reading iolayer <FH>';
+    ok close(FH),                      '3-arg open() reading iolayer close';
+}
 
 $fh = 'prune power';
 ok open($fh, '<', 'testfile.txt'), '3-arg open() symbolic';

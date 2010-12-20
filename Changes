@@ -13,3 +13,4 @@ Revision history for Perl extension Test::MockCommand.
 
 0.03
 	- included t/open-handler.t in manifest
+        - for perl 5.6, skipped 6 tests of open() that it can't handle
