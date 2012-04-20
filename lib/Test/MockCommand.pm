@@ -4,8 +4,15 @@ use strict;
 
 use Carp qw(carp croak);
 use Data::Dumper;
-use POSIX qw(WIFEXITED WEXITSTATUS);
 use Symbol;
+
+# Not all systems implement the WIFEXITED/WEXITSTATUS macros
+use POSIX qw(WIFEXITED WEXITSTATUS);
+eval { WIFEXITED(0); };
+if ($@ =~ /not (?:defined|a valid) POSIX macro/) {
+    *WIFEXITED   = sub { not $_[0] & 0xff };
+    *WEXITSTATUS = sub { $_[0] >> 8  };
+}
 
 use Test::MockCommand::Recorder;
 use Test::MockCommand::Result;
