@@ -6,6 +6,7 @@ lib/Test/MockCommand/ScalarReadline.pm
 lib/Test/MockCommand/TiedFH.pm
 MANIFEST
 Makefile.PL
+META.yml
 README
 t/add-recorder.t
 t/auto-save1.t
