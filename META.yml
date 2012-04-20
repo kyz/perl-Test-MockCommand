@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                Test-MockCommand
-version:             0.02
+version:             0.03
 abstract:            provide mock results for external commands
 license:             ~
 author:              
