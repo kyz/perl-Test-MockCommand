@@ -9,7 +9,8 @@ use Symbol;
 # Not all systems implement the WIFEXITED/WEXITSTATUS macros
 use POSIX qw(WIFEXITED WEXITSTATUS);
 eval { WIFEXITED(0); };
-if ($@ =~ /not (?:defined|a valid) POSIX macro/) {
+if ($@ =~ /not (?:defined|a valid|implemented)/) {
+    no warnings 'redefine';
     *WIFEXITED   = sub { not $_[0] & 0xff };
     *WEXITSTATUS = sub { $_[0] >> 8  };
 }

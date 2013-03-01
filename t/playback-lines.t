@@ -34,14 +34,12 @@ for ("\n", "\n\n", 'x', 't', '', undef, 'test', \$one, \$three, \$ten, \$hun) {
     # open('cat file |'), to check that cat/type on this platform
     # doesn't modify the file it outputs
     die "opening file: $!" unless open my $fh, "<testfile.dat";
-    binmode $fh;
     my @all_file = <$fh>;
     die "closing file: $!" unless close $fh;
 
     my @all_readpipe = readpipe("$cat testfile.dat ");
 
     die "open file: $!" unless open(my $fh2, "$cat testfile.dat |");
-    binmode $fh2;
     my @all_open = <$fh2>;
     die "close file: $!" unless close($fh2);
 
@@ -49,6 +47,8 @@ for ("\n", "\n\n", 'x', 't', '', undef, 'test', \$one, \$three, \$ten, \$hun) {
     is_deeply \@all_file, \@all_open, "$name open vs open:cat";
     push @normal_results, [@all_file];
 }
+
+die "deleting file: $!" unless unlink 'testfile.dat';
 
 # turn off recording
 Test::MockCommand->recording(0);
@@ -64,12 +64,9 @@ for ("\n", "\n\n", 'x', 't', '', undef, 'test', \$one, \$three, \$ten, \$hun) {
 
     push @readpipe_results, [readpipe("$cat testfile.dat ")];
     ok open(my $fh, "$cat testfile.dat |"), "$name open:cat open()";
-    binmode $fh;
     push @open_results, [<$fh>];
     die "close file: $!" unless close($fh);
 }
 
 is_deeply \@normal_results, \@readpipe_results, "simulated readpipe:cat";
 is_deeply \@normal_results, \@open_results, "simulated open:cat";
-
-die "deleting file: $!" unless unlink 'testfile.dat';
