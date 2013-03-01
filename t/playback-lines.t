@@ -48,6 +48,8 @@ for ("\n", "\n\n", 'x', 't', '', undef, 'test', \$one, \$three, \$ten, \$hun) {
     push @normal_results, [@all_file];
 }
 
+die "deleting file: $!" unless unlink 'testfile.dat';
+
 # turn off recording
 Test::MockCommand->recording(0);
 
@@ -68,5 +70,3 @@ for ("\n", "\n\n", 'x', 't', '', undef, 'test', \$one, \$three, \$ten, \$hun) {
 
 is_deeply \@normal_results, \@readpipe_results, "simulated readpipe:cat";
 is_deeply \@normal_results, \@open_results, "simulated open:cat";
-
-die "deleting file: $!" unless unlink 'testfile.dat';
