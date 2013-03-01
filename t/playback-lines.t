@@ -34,14 +34,12 @@ for ("\n", "\n\n", 'x', 't', '', undef, 'test', \$one, \$three, \$ten, \$hun) {
     # open('cat file |'), to check that cat/type on this platform
     # doesn't modify the file it outputs
     die "opening file: $!" unless open my $fh, "<testfile.dat";
-    binmode $fh;
     my @all_file = <$fh>;
     die "closing file: $!" unless close $fh;
 
     my @all_readpipe = readpipe("$cat testfile.dat ");
 
     die "open file: $!" unless open(my $fh2, "$cat testfile.dat |");
-    binmode $fh2;
     my @all_open = <$fh2>;
     die "close file: $!" unless close($fh2);
 
@@ -64,7 +62,6 @@ for ("\n", "\n\n", 'x', 't', '', undef, 'test', \$one, \$three, \$ten, \$hun) {
 
     push @readpipe_results, [readpipe("$cat testfile.dat ")];
     ok open(my $fh, "$cat testfile.dat |"), "$name open:cat open()";
-    binmode $fh;
     push @open_results, [<$fh>];
     die "close file: $!" unless close($fh);
 }
