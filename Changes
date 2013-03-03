@@ -15,3 +15,4 @@ Revision history for Perl extension Test::MockCommand.
 	- included t/open-handler.t in manifest
 	- for perl 5.6, skipped 6 tests of open() that it can't handle
 	- define WIFEXITED and WEXITSTATUS macros if not implemented
+	- macros defined and tests now pass on Win32, thanks to William Orr
