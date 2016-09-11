@@ -332,7 +332,7 @@ Test::MockCommand - provide mock results for external commands
  ok $cmd->return_value() eq $list;
 
  # go into playback mode
- Test::MockCommand->record(0);
+ Test::MockCommand->recording(0);
 
  # run 'ls -l' again while extra file is in the directory
  # should pull result from store, not real life,
