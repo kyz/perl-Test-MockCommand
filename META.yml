@@ -1,10 +1,10 @@
 --- #YAML:1.0
 name:                Test-MockCommand
-version:             0.04
+version:             0.05
 abstract:            provide mock results for external commands
 license:             ~
 author:              
-    - Stuart Caie <kyzer@4u.net>
+    - Stuart Caie <kyzer@kyzer.me.uk>
 generated_by:        ExtUtils::MakeMaker version 6.42
 distribution_type:   module
 requires:     

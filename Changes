@@ -20,3 +20,6 @@ Revision history for Perl extension Test::MockCommand.
 0.04
 	- fix docmentation error
 	- support changes to readpipe() in perl >= 5.27.7
+
+0.05
+	- fix email address
